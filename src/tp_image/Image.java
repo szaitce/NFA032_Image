@@ -25,20 +25,25 @@ public class Image {
 		this.pixel=pixel;
 		this.hauteur = hauteur;
 		this.largeur = largeur;
-		this.filename ="";
+		this.filename ="new.png";
 		this.bw = false;
 	}
 	public Image () {
+		Pixel [][] pixel= new Pixel [0][0];
 		this.pixel=pixel;
-		this.filename ="";
+		this.hauteur = 0;
+		this.largeur = 0;
+		this.filename ="new.png";
 		this.bw = false;
 	}
 
 	public int getLargeur() {
+		this.largeur = this.pixel[0].length;
 		return this.largeur;
 	}
 
 	public int getHauteur() {
+		this.hauteur = this.pixel.length;
 		return this.hauteur;
 	}
 	public Pixel getPixel(int hauteurPixel, int largeurPixel) {
@@ -50,13 +55,13 @@ public class Image {
 	public void setName (String filename) {
 		this.filename=filename;
 	}
+	public boolean getBW() {
+		return this.bw;	
+	}
 	public void setBW(boolean b) {
 		this.bw=b;	
 	}
 	
-	public boolean getBW() {
-		return this.bw;	
-	}
 	
 	public String toString() {
 		String res = "Largeur: " + this.largeur + "hauteur: " + this.hauteur+", name: "+this.filename;
@@ -71,13 +76,16 @@ public class Image {
 		return false;
 	}
 
-	public void toFile() {
-		ImageUtil.ecrireFichier(this.filename, this.pixel);
+	public void toFile(String path) {
+		ImageUtil.ecrireFichier(path+this.filename, this.pixel);
 	}
 
-	public static Image fromFile(String file) {
-		Image res = new Image(ImageUtil.lireFichier(file));
-		res.setName (file);
+	public static Image fromFile(String path, String file) {
+		Image res = new Image(ImageUtil.lireFichier(path+file));
+		res.setName(file);
+		res.largeur=res.pixel[0].length;
+		res.hauteur=res.pixel.length;
+		res.setBW(false);
 		return res;
 	}
 
@@ -126,26 +134,38 @@ public class Image {
 		}
 		this.bw = true;
 	}
-	public void incruster(Image adImage, int shiftLargBI, int shiftHautBI) {
-		if (shiftLargBI<0) shiftLargBI=0;				// determinaison les bords des images 
-		if (shiftHautBI<0) shiftHautBI=0;				// pour ne pas depasser aux limites des Tabs
-		int larg = adImage.getLargeur();
+	public void incruster(Image adImage, int shiftLargFon, int shiftHautFon) {
+		int larg = adImage.getLargeur();				// determinaison les bords des images
+		if (shiftLargFon<0) shiftLargFon=0;				// pour ne pas depasser aux limites des Tabs 
+		if (shiftLargFon+larg >= this.largeur) {
+			larg=this.largeur-shiftLargFon;
+		}
 		int haut = adImage.getHauteur();
-		if (shiftLargBI+larg >= this.largeur) {
-			larg=this.largeur-shiftLargBI;
+		if (shiftHautFon<0) shiftHautFon=0;				
+		if (shiftHautFon+haut >= this.hauteur) {
+			haut=this.hauteur-shiftHautFon;
 		}
-		if (shiftHautBI+haut >= this.hauteur) {
-			haut=this.hauteur-shiftHautBI;
-		}
+		System.out.println("Fon     hauteur:"+this.hauteur+", largeur: "+this.largeur);
+		System.out.println("AdImage hauteur:"+adImage.hauteur+", largeur: "+adImage.largeur);
+		System.out.println("shift   hauteur:"+shiftHautFon+",  largeur: "+shiftLargFon);
+		System.out.println("Cadre   hauteur:"+(haut)+", largeur: "+(larg));
+		System.out.println("Limites hauteur:"+(shiftHautFon+haut)+", largeur: "+(shiftLargFon+larg));
+		
 		for (int i = 0; i < haut; i++) {
 			for (int j = 0; j < larg; j++) {
 				if (adImage.pixel[i][j].getAlpha() == 255) {
-//				System.out.println("i:"+i+", j:"+j);
-					this.pixel[shiftLargBI+i][shiftHautBI+j].summaryPixel(adImage.pixel[i][j]);
+					if (i>=adImage.hauteur || j>=adImage.largeur ||
+							shiftHautFon+i>=this.hauteur || shiftLargFon+j>=this.largeur) {
+						System.out.println("i:"+i+", j:"+j);
+						System.out.println("shiftHautFon+i:"+(shiftHautFon+i)+"   shiftLargFon+j: "+(shiftLargFon+j));
+						System.out.println("fon pixel: "+this.pixel[shiftHautFon+i][shiftLargFon+j].toString());
+						System.out.println("ad pixel: "+adImage.pixel[i][j].toString());
+					}
+					this.pixel[shiftHautFon+i][shiftLargFon+j].summaryPixel(adImage.pixel[i][j]);
 				}
 			}
 		}
-		if (!adImage.bw) { 				// si l'image incrusté est en couleur on change
+		if (!adImage.bw) { 				// si l'image incrusté est en couleur
 			this.bw=false;				// on declare que le fon deviens en couleur				
 			} 
 	}
@@ -159,7 +179,8 @@ public class Image {
 				in.pixel [i][j] = this.pixel[(int)(i/scaleH)][(int)(j/scaleL)];
 				}
 			}
-		
+		in.setBW(this.bw);
+		in.setName(this.getName());
 		return in;
 	}
 }
